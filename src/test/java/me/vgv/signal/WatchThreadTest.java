@@ -1,11 +1,15 @@
 package me.vgv.signal;
 
-import com.google.common.io.Files;
+import me.vgv.signal.fs.FileInfo;
+import me.vgv.signal.fs.FileSystemSupport;
 import org.mockito.Mockito;
+import org.mockito.internal.verification.VerificationModeFactory;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.io.File;
+import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -16,73 +20,77 @@ import java.util.concurrent.TimeUnit;
 public class WatchThreadTest {
 
 	@Test(groups = "unit")
-	public void testFileNotExists() throws Exception {
-		final int CHECK_INTERVAL = 1;
-
-		SignalListener signalListener = Mockito.mock(SignalListener.class);
-
-		// создадим временный файл и удалим его
-		File file = File.createTempFile("signal_test_", null);
-		file.delete();
-
-		WatchThread watchThread = new WatchThread(CHECK_INTERVAL, file.getAbsolutePath(), signalListener);
-		watchThread.start();
-
-		TimeUnit.SECONDS.sleep(CHECK_INTERVAL * 3); // подождем аж в три раза дольше
-		Mockito.verifyZeroInteractions(signalListener);
-	}
-
-	@Test(groups = "unit")
-	public void testFileNotReadable() throws Exception {
-		final int CHECK_INTERVAL = 1;
-
-		SignalListener signalListener = Mockito.mock(SignalListener.class);
-
-		// создадим временный файл и сделаем его нечитаемым
-		File file = File.createTempFile("signal_test_", null);
-		file.setReadable(false);
-		Files.write("some content".getBytes("UTF-8"), file);
-
-		WatchThread watchThread = new WatchThread(CHECK_INTERVAL, file.getAbsolutePath(), signalListener);
-		watchThread.start();
-
-		TimeUnit.SECONDS.sleep(CHECK_INTERVAL * 3); // подождем аж в три раза дольше
-		Mockito.verifyZeroInteractions(signalListener);
-	}
-
-	@Test(groups = "unit")
 	public void testNormalFile() throws Exception {
-		final int CHECK_INTERVAL = 1;
+		//
+		final List<FileInfo> fileInfoList = new ArrayList<FileInfo>() {{
+			add(new FileInfo("1", 1));
+			add(new FileInfo("2", 2));
+			add(new FileInfo("3", 3));
+		}};
+		FileSystemSupport fileSystemSupport = Mockito.mock(FileSystemSupport.class);
+		Mockito.when(fileSystemSupport.readFile(Mockito.anyString(), Mockito.anyInt())).thenAnswer(new Answer<Object>() {
+			@Override
+			public Object answer(InvocationOnMock invocation) throws Throwable {
+				if (fileInfoList.isEmpty()) {
+					return null;
+				} else {
+					return fileInfoList.remove(0);
+				}
+			}
+		});
 
+		//
 		final List<Signal> signals = new ArrayList<>();
 		SignalListener signalListener = new SignalListener() {
 			@Override
-			public void signal(Signal signal) {
+			public void signal(@Nonnull Signal signal) {
 				signals.add(signal);
 			}
 		};
 
-		// создадим временный файл
-		File file = File.createTempFile("signal_test_", null);
-
-		WatchThread watchThread = new WatchThread(CHECK_INTERVAL, file.getAbsolutePath(), signalListener);
+		// начало теста
+		final int CHECK_INTERVAL = 1;
+		WatchThread watchThread = new WatchThread(fileSystemSupport, CHECK_INTERVAL, "abc", signalListener);
 		watchThread.start();
 
 		TimeUnit.MILLISECONDS.sleep(CHECK_INTERVAL * 500);
-		Files.write("content1".getBytes("UTF-8"), file);
+		// first read
 		TimeUnit.SECONDS.sleep(CHECK_INTERVAL);
-		Files.write("content2".getBytes("UTF-8"), file);
+		// second read
 		TimeUnit.SECONDS.sleep(CHECK_INTERVAL);
-		Files.write("content3".getBytes("UTF-8"), file);
+		// third read
 		TimeUnit.SECONDS.sleep(CHECK_INTERVAL);
+		// null read
+		TimeUnit.SECONDS.sleep(CHECK_INTERVAL);
+		// null read
+		TimeUnit.SECONDS.sleep(CHECK_INTERVAL);
+
+		// тормозим поток, хватит
+		watchThread.interrupt();
+
+		// no read
+		TimeUnit.SECONDS.sleep(CHECK_INTERVAL);
+		// no read
+		TimeUnit.SECONDS.sleep(CHECK_INTERVAL);
+
+		// конец теста
+
+		// проверим, сколько раз дернули метод read
+		Mockito.verify(fileSystemSupport, VerificationModeFactory.times(5)).readFile(Mockito.anyString(), Mockito.anyInt());
 
 		// начнем проверки
 		Assert.assertEquals(signals.size(), 3);
-		Assert.assertEquals(signals.get(0).getSignal(), "content1");
-		Assert.assertEquals(signals.get(1).getSignal(), "content2");
-		Assert.assertEquals(signals.get(2).getSignal(), "content3");
 
-		// проверка времени
+		Assert.assertEquals(signals.get(0).getSignal(), "1");
+		Assert.assertEquals(signals.get(0).getLastModified(), 1);
+
+		Assert.assertEquals(signals.get(1).getSignal(), "2");
+		Assert.assertEquals(signals.get(1).getLastModified(), 2);
+
+		Assert.assertEquals(signals.get(2).getSignal(), "3");
+		Assert.assertEquals(signals.get(2).getLastModified(), 3);
+
+		// проверка хода времени
 		for (int i = 0; i < signals.size() - 1; i++) {
 			Signal first = signals.get(i);
 			Signal next = signals.get(i + 1);
