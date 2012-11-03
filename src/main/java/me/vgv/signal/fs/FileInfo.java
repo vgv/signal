@@ -3,7 +3,7 @@ package me.vgv.signal.fs;
 import javax.annotation.Nonnull;
 
 /**
- * @author Vasily Vasilkov (vasily.vasilkov@gmail.com)
+ * @author Vasily Vasilkov (vgv@vgv.me)
  */
 public final class FileInfo {
 

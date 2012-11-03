@@ -10,7 +10,7 @@ import java.io.*;
 import java.util.concurrent.TimeUnit;
 
 /**
- * @author Vasily Vasilkov (vasily.vasilkov@gmail.com)
+ * @author Vasily Vasilkov (vgv@vgv.me)
  */
 public class FileSystemSupportImpl implements FileSystemSupport {
 
