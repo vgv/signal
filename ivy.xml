@@ -1,0 +1,18 @@
+<ivy-module version="2.0">
+	<info organisation="me.vgv" module="oncurrency"/>
+	<dependencies>
+
+		<dependency org="org.slf4j" name="slf4j-api" rev="1.6.6" transitive="false"/>
+
+		<dependency org="com.google.guava" name="guava" rev="13.0.1" transitive="false"/>
+
+		<dependency org="com.google.code.findbugs" name="jsr305" rev="2.0.1" transitive="false"/>
+
+		<!-- Test libraries -->
+		<dependency org="org.mockito" name="mockito-all" rev="1.9.0" transitive="false"/>
+		<dependency org="org.testng" name="testng" rev="6.8" transitive="false"/>
+		<dependency org="com.beust" name="jcommander" rev="1.5" transitive="false"/>
+		<dependency org="org.beanshell" name="bsh" rev="2.0b4" transitive="false"/>
+
+	</dependencies>
+</ivy-module>

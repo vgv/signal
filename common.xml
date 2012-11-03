@@ -1,0 +1,66 @@
+<project xmlns:ivy="antlib:org.apache.ivy.ant">
+
+	<macrodef name="ivy-retrieve"
+			  description="Загружает все файлы из удаленного репозитария и раскладывает их в папку lib/">
+		<sequential>
+			<taskdef resource="org/apache/ivy/ant/antlib.xml" classpath="ivy.jar"
+					 uri="antlib:org.apache.ivy.ant"/>
+
+			<ivy:settings file="ivysettings.xml"/>
+			<ivy:retrieve
+					pattern="lib/jar/[artifact].[ext]"
+					overwriteMode="newer"
+					type="jar,bundle"/>
+			<ivy:retrieve
+					pattern="lib/source/[artifact].[ext]"
+					overwriteMode="newer"
+					type="source"/>
+		</sequential>
+	</macrodef>
+
+	<macrodef name="ivy-report">
+		<sequential>
+			<mkdir dir="output/dependency-report"/>
+			<ivy:report todir="output/dependency-report"/>
+		</sequential>
+	</macrodef>
+
+	<macrodef name="java-compile" description="Компилирует java-файлы">
+		<attribute name="srcdir"/>
+		<attribute name="destdir"/>
+		<attribute name="classpathref"/>
+		<sequential>
+			<!-- перед компиляцией создадим папку для классов, если ее еще нет -->
+			<mkdir dir="@{destdir}"/>
+			<!-- компиляция -->
+			<javac
+					srcdir="@{srcdir}"
+					destdir="@{destdir}"
+					classpathref="@{classpathref}"
+					source="7"
+					target="7"
+					includeantruntime="false"
+					fork="true"
+					memorymaximumsize="128m"
+					debug="true"
+					debuglevel="lines,vars,source"
+					encoding="UTF-8"
+					/>
+		</sequential>
+	</macrodef>
+
+	<macrodef name="test-run" description="Выполняет тесты">
+		<sequential>
+			<!-- Подключим testng -->
+			<taskdef resource="testngtasks" classpath="lib/jar/testng.jar"/>
+
+			<testng classpathref="test-run-classpath"
+					outputDir="output/report"
+					haltOnfailure="true">
+
+				<classfileset dir="output/test-classes" includes="**/*.class"/>
+			</testng>
+		</sequential>
+	</macrodef>
+
+</project>

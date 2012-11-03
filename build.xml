@@ -1,0 +1,54 @@
+<project name="signal" default="dist">
+
+	<import file="common.xml"/>
+
+	<path id="compile-classpath">
+		<fileset dir="lib/jar" includes="**/*.jar"/>
+	</path>
+
+	<path id="test-compile-classpath">
+		<path refid="compile-classpath"/>
+		<pathelement location="output/classes"/>
+	</path>
+
+	<path id="test-run-classpath">
+		<path refid="test-compile-classpath"/>
+		<pathelement location="output/test-classes"/>
+		<pathelement location="src/test/resources"/>
+	</path>
+
+	<target name="clean">
+		<delete dir="output"/>
+		<delete dir="dist"/>
+	</target>
+
+	<target name="download-lib">
+		<ivy-retrieve/>
+	</target>
+
+	<target name="compile" depends="download-lib">
+		<java-compile
+				srcdir="src/main/java"
+				destdir="output/classes"
+				classpathref="compile-classpath"/>
+	</target>
+
+	<target name="compile-test" depends="compile">
+		<java-compile
+				srcdir="src/test/java"
+				destdir="output/test-classes"
+				classpathref="test-compile-classpath"/>
+	</target>
+
+	<target name="package" depends="compile">
+		<jar basedir="output/classes" jarfile="dist/signal.jar"/>
+		<jar basedir="src/main/java" jarfile="dist/signal-sources.jar"/>
+	</target>
+
+	<target name="test" depends="compile-test">
+		<test-run/>
+	</target>
+
+	<target name="dist" depends="clean, test, package"/>
+
+</project>

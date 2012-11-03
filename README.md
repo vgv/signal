@@ -1,0 +1,1 @@
+[![Build Status](https://secure.travis-ci.org/vgv/signal.png)](http://travis-ci.org/vgv/signal)
